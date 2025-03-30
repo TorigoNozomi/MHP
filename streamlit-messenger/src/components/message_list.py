@@ -57,7 +57,7 @@ def render_message(message_data, is_agent):
                 <div class="message-content speech-bubble">
                     <div class="message-header">
                         <span class="sender">{agent_name if is_agent else 'User'}</span>
-                        <span class="timestamp">{message_data['Timestamp'].strftime('%Y-%m-%d %H:%M')}</span>
+                        <span class="timestamp">{message_data['Timestamp'].strftime('%H:%M')}</span>
                     </div>
                     <div class="message-text">
                         {message_data['Message']}
@@ -94,6 +94,23 @@ def render_message_list(
         st.markdown(
             """
             <style>
+                /* Basic responsive settings */
+                @media screen and (max-width: 768px) {
+                    .main .block-container {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        padding-top: 1rem;
+                    }
+                    
+                    h1 {
+                        font-size: 1.5rem !important;
+                    }
+                    
+                    h2, h3 {
+                        font-size: 1.2rem !important;
+                    }
+                }
+                
                 /* Message container styling */
                 .stApp [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > div:nth-child(2) {
                     overflow-y: auto;
@@ -104,23 +121,24 @@ def render_message_list(
                 .message-content-wrapper {
                     display: flex;
                     align-items: flex-start;
-                    margin: 15px 0;
+                    margin: 10px 0;
+                    width: 100%;
                 }
                 
                 /* Avatar styling */
                 .avatar {
-                    width: 40px;
-                    height: 40px;
+                    width: 32px;
+                    height: 32px;
                     border-radius: 50%;
-                    margin: 0 12px;
+                    margin: 0 8px;
                     flex-shrink: 0;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-weight: bold;
                     color: white;
-                    font-size: 16px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                    font-size: 14px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
                 }
                 
                 .avatar img {
@@ -134,9 +152,8 @@ def render_message_list(
                 .message {
                     display: flex;
                     align-items: flex-start;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     width: 100%;
-                    max-width: 90%;
                 }
                 
                 .message.user {
@@ -147,13 +164,20 @@ def render_message_list(
                 /* Speech bubble styling */
                 .speech-bubble {
                     position: relative;
-                    max-width: 70%;
-                    padding: 12px 15px;
+                    max-width: calc(100% - 50px);
+                    padding: 10px 12px;
                     border-radius: 10px;
                     background-color: #2d2d2d;
                     color: #e0e0e0;
                     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
                     text-align: left;
+                    font-size: 0.9rem;
+                }
+                
+                @media screen and (min-width: 768px) {
+                    .speech-bubble {
+                        max-width: 70%;
+                    }
                 }
                 
                 .message.agent .speech-bubble {
@@ -164,9 +188,9 @@ def render_message_list(
                 .message.agent .speech-bubble:before {
                     content: "";
                     position: absolute;
-                    left: -8px;
-                    top: 15px;
-                    border-width: 8px 8px 8px 0;
+                    left: -6px;
+                    top: 12px;
+                    border-width: 6px 6px 6px 0;
                     border-style: solid;
                     border-color: transparent #0e639c transparent transparent;
                 }
@@ -174,9 +198,9 @@ def render_message_list(
                 .message.user .speech-bubble:before {
                     content: "";
                     position: absolute;
-                    right: -8px;
-                    top: 15px;
-                    border-width: 8px 0 8px 8px;
+                    right: -6px;
+                    top: 12px;
+                    border-width: 6px 0 6px 6px;
                     border-style: solid;
                     border-color: transparent transparent transparent #2d2d2d;
                 }
@@ -185,18 +209,22 @@ def render_message_list(
                 .message-header {
                     display: flex;
                     justify-content: space-between;
-                    margin-bottom: 5px;
+                    margin-bottom: 4px;
                     text-align: left;
                     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    padding-bottom: 5px;
+                    padding-bottom: 4px;
+                    font-size: 0.9rem;
                 }
                 
                 .sender {
                     font-weight: bold;
+                    max-width: 70%;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
                 }
                 
                 .timestamp {
-                    font-size: 0.8em;
+                    font-size: 0.75em;
                     opacity: 0.7;
                 }
                 
@@ -206,22 +234,42 @@ def render_message_list(
                     display: block;
                     width: 100%;
                     white-space: pre-wrap;
-                    line-height: 1.5;
+                    line-height: 1.4;
                     overflow-wrap: break-word;
                     word-wrap: break-word;
                     word-break: break-word;
+                    font-size: 0.9rem;
+                }
+                
+                @media screen and (max-width: 480px) {
+                    .message-text {
+                        font-size: 0.85rem;
+                    }
+                    
+                    .speech-bubble {
+                        padding: 8px 10px;
+                    }
+                    
+                    .avatar {
+                        width: 28px;
+                        height: 28px;
+                        font-size: 12px;
+                    }
                 }
             </style>
             """,
             unsafe_allow_html=True
         )
         
-        # Render each message
+        # Render all messages at once for better performance on mobile
+        all_messages_html = ""
         for _, row in messages_df.iterrows():
-            st.markdown(
-                render_message(
-                    message_data=row,
-                    is_agent=row['Agent'] in selected_agents if selected_agents else False
-                ),
-                unsafe_allow_html=True
+            all_messages_html += render_message(
+                message_data=row,
+                is_agent=row['Agent'] in selected_agents if selected_agents else False
             )
+        
+        st.markdown(
+            f'<div class="messages-container">{all_messages_html}</div>',
+            unsafe_allow_html=True
+        )
