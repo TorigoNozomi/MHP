@@ -6,6 +6,16 @@ from utils.thread_parser import get_race_threads
 from components.message_list_bubble import render_message_list
 import os
 
+# キャッシュを使ってスレッド一覧を取得
+@st.cache_data
+def cached_get_race_threads(data_dir):
+    return get_race_threads(data_dir)
+
+# キャッシュを使ってメッセージを読み込む
+@st.cache_data
+def cached_load_messages(file_path):
+    return load_messages(file_path)
+
 # Set page config
 st.set_page_config(
     page_title="Race Analysis Chat",
@@ -13,9 +23,9 @@ st.set_page_config(
     layout="wide"  # Use wide layout for messenger-like UI
 )
 
-# Get all race threads
+# Get all race threads using caching
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
-threads = get_race_threads(data_dir)
+threads = cached_get_race_threads(data_dir)
 
 # Sidebar for race selection
 with st.sidebar:
@@ -50,8 +60,8 @@ if selected_thread:
     st.title(f"🏇 {selected_thread.racecourse} {selected_thread.race_number}R Analysis")
     
     try:
-        # Load messages
-        df = load_messages(selected_thread.full_path)
+        # Load messages using caching
+        df = cached_load_messages(selected_thread.full_path)
         
         # Get unique agents
         agents = sorted(df['Agent'].unique())
@@ -66,7 +76,6 @@ if selected_thread:
                     agents,
                     default=agents
                 )
-                
                 search_query = st.text_input("Search Messages")
             
             with col2:
@@ -74,7 +83,6 @@ if selected_thread:
         
         # Apply filters
         filtered_df = df[df['Agent'].isin(selected_agents)]
-        
         if search_query:
             filtered_df = filtered_df[
                 filtered_df['Message'].str.contains(search_query, case=False, na=False)
